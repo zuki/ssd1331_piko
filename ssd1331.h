@@ -106,33 +106,17 @@ struct render_area {
     uint8_t end_col;
     uint8_t start_page;
     uint8_t end_page;
+    uint16_t color;
 
     int buflen;
 };
 
-static inline void cs_select(void) {
-    asm volatile("nop \n nop \n nop");
-    gpio_put(SPI_CSN_PIN, 0);  // Active low
-    asm volatile("nop \n nop \n nop");
-}
-
-static inline void cs_deselect(void) {
-    asm volatile("nop \n nop \n nop");
-    gpio_put(SPI_CSN_PIN, 1);
-    asm volatile("nop \n nop \n nop");
-}
-
-static inline void dc_command(void) {
-    //asm volatile("nop \n nop \n nop");
-    gpio_put(SPI_DCN_PIN, 0);  // command
-    //asm volatile("nop \n nop \n nop");
-}
-
-static inline void dc_data() {
-    //asm volatile("nop \n nop \n nop");
-    gpio_put(SPI_DCN_PIN, 1);   // data
-    //asm volatile("nop \n nop \n nop");
-}
+#define CS_SELECT       gpio_put(SPI_CSN_PIN, 0)
+#define CS_DESELECT     gpio_put(SPI_CSN_PIN, 1)
+#define DC_COMMAND      gpio_put(SPI_DCN_PIN, 0)
+#define DC_DATA         gpio_put(SPI_DCN_PIN, 1)
+#define RESET_ON        gpio_put(SPI_RESN_PIN, 0)
+#define RESET_OFF       gpio_put(SPI_RESN_PIN, 1)
 
 void calc_render_area_buflen(struct render_area *area);
 void send_cmd(spi_inst_t *spi, uint8_t cmd);

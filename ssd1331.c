@@ -33,11 +33,11 @@ void calc_render_area_buflen(struct render_area *area) {
 }
 
 void send_cmd(spi_inst_t *spi, uint8_t cmd) {
-    gpio_put(SPI_CSN_PIN, 0);
-    gpio_put(SPI_DCN_PIN, 0);
+    CS_SELECT;
+    DC_COMMAND;
     spi_write_blocking(spi, &cmd, 1);
-    gpio_put(SPI_DCN_PIN, 1);
-    gpio_put(SPI_CSN_PIN, 1);
+    DC_DATA;
+    CS_DESELECT;
 }
 
 void send_cmd_list(spi_inst_t *spi, uint8_t *buf, size_t len) {
@@ -46,18 +46,18 @@ void send_cmd_list(spi_inst_t *spi, uint8_t *buf, size_t len) {
 }
 
 void send_data(spi_inst_t *spi, uint8_t *buf, size_t len) {
-    gpio_put(SPI_CSN_PIN, 0);
+    CS_SELECT;
     spi_write_blocking(spi, buf, len);
-    gpio_put(SPI_CSN_PIN, 1);
+    CS_DESELECT;
 }
 
 void reset(spi_inst_t *spi) {
-    gpio_put(SPI_RESN_PIN, 1);
-    gpio_put(SPI_CSN_PIN, 1);
+    RESET_OFF;
+    CS_DESELECT;
     busy_wait_ms(5);
-    gpio_put(SPI_RESN_PIN, 0);
+    RESET_ON;
     busy_wait_ms(80);
-    gpio_put(SPI_RESN_PIN, 1);
+    RESET_OFF;
     busy_wait_ms(20);
 }
 
@@ -72,7 +72,7 @@ void rect(spi_inst_t *spi, uint32_t x, uint32_t width, uint32_t y, uint32_t heig
 
 void clear(spi_inst_t *spi, uint16_t color) {
     uint8_t buf[] = {
-         (uint8_t)(color >> 8 & 0xFF),
+        (uint8_t)(color >> 8 & 0xFF),
         (uint8_t)(color & 0xFF)
     };
 
@@ -130,13 +130,13 @@ void draw_line(spi_inst_t *spi, int x0, int y0, int x1, int y1, uint16_t color) 
     gpio_init(SPI_CSN_PIN);
     gpio_set_function(SPI_CSN_PIN, GPIO_FUNC_SPI);
     gpio_set_dir(SPI_CSN_PIN, GPIO_OUT);
-    gpio_put(SPI_CSN_PIN, 1);
+    CS_DESELECT;
 
     // D/C# (Data/Command)ピンはアクティブLOWなので、HIGH状態で初期化
     gpio_init(SPI_DCN_PIN);
     //gpio_set_function(SPI_DCN_PIN, GPIO_FUNC_SIO);
     gpio_set_dir(SPI_DCN_PIN, GPIO_OUT);
-    gpio_put(SPI_DCN_PIN, 1);
+    DC_DATA;
 
     // RES# (Data/Command)ピンはアクティブLOWなので、HIGH状態で初期化
     gpio_init(SPI_RESN_PIN);
@@ -147,7 +147,7 @@ void draw_line(spi_inst_t *spi, int x0, int y0, int x1, int y1, uint16_t color) 
     // ssd1331をリセット
     reset(spi);
 
-    // デフォルト値で初期化
+    // デフォルト値で初期化: Adafruit-SSD1331-OLED-Driver-Library-for-Arduinoから引用
     uint8_t cmds[] = {
         SSD1331_SET_DISP_OFF,
         SSD1331_SET_ROW_ADDR, 0x00, 0x3F,
