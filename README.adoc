@@ -1,6 +1,6 @@
 = カラーOLEDディスプレイ（SSD1331）をSPI経由で接続する
 
-ssD1331のデータシートは file:///Users/dspace/Documents/Datasheets/SSD1331_1.2.pdf にある。
+ssD1331のデータシートは file:///Users/dspace/Documents/Datasheets/SSD1331_1.2.pdf[ここ] にある。
 
 
 == 配線情報
@@ -13,3 +13,7 @@ ssD1331のデータシートは file:///Users/dspace/Documents/Datasheets/SSD133
    * GND (pin 38)  -> SSD1331ボードのGND
 
 SPI port 0を使用する。電源は3.3V OUTピンから供給する。
+
+== 1. 画像が表示できた
+
+image::image_ok.jpeg[画像表示]

@@ -33,11 +33,12 @@
 
 #define SSD1331_HEIGHT      64
 #define SSD1331_WIDTH       96
+#define SSD1331_BUF_LEN     (2 * SSD1331_HEIGHT * SSD1331_WIDTH)
 
 #define RGB(r,g,b)	(uint16_t)(((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3))
 
-#define FrontG		COL_WHITE
-#define BackG   	COL_BLACK
+#define COL_FRONT   COL_WHITE
+#define COL_BACK   	COL_BLACK
 
 #define COL_BLACK	RGB(0,0,0)
 #define COL_WHITE	RGB(255,255,255)
@@ -104,9 +105,8 @@
 struct render_area {
     uint8_t start_col;
     uint8_t end_col;
-    uint8_t start_page;
-    uint8_t end_page;
-    uint16_t color;
+    uint8_t start_row;
+    uint8_t end_row;
 
     int buflen;
 };
@@ -122,11 +122,9 @@ void calc_render_area_buflen(struct render_area *area);
 void send_cmd(spi_inst_t *spi, uint8_t cmd);
 void send_cmd_list(spi_inst_t *spi, uint8_t *buf, size_t len);
 void send_data(spi_inst_t *spi, uint8_t *buf, size_t len);
-
-void rect(spi_inst_t *spi, uint32_t x, uint32_t width, uint32_t y, uint32_t height);
-
+void scroll(spi_inst_t *spi, bool on);
+void render(spi_inst_t *spi, uint8_t *buf, struct render_area *area);
 void reset(spi_inst_t *spi);
-void clear(spi_inst_t *spi, uint16_t color);
-void draw_line(spi_inst_t *spi, int x0, int y0, int x1, int y1, uint16_t color);
-void write_pixel(spi_inst_t *spi, int x, int y, uint16_t color);
+//void clear(spi_inst_t *spi, uint16_t color);
+
 void ssd1331_init(spi_inst_t *spi, uint freq);

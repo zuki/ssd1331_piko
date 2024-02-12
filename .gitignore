@@ -1,2 +1,6 @@
 build/
 refs/
+tools/bmp2head
+*.bmp
+image.h
+.DS_Store

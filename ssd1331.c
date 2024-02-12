@@ -12,6 +12,8 @@
 #include "pico/binary_info.h"
 #include "hardware/spi.h"
 #include "ssd1331.h"
+#include "ssd1306_font.h"
+#include "image.h"
 
 /* SPI経由で96x64 16bit-Color OLEDディスプレイを駆動するSSD1331を
    操作するサンプルコード
@@ -29,7 +31,7 @@
 
 void calc_render_area_buflen(struct render_area *area) {
     // レンダーエリアのバッファの長さを計算する: データは16bit
-    area->buflen = 2 * (area->end_col - area->start_col + 1) * (area->end_page - area->start_page + 1);
+    area->buflen = 2 * (area->end_col - area->start_col + 1) * (area->end_row - area->start_row + 1);
 }
 
 void send_cmd(spi_inst_t *spi, uint8_t cmd) {
@@ -47,79 +49,13 @@ void send_cmd_list(spi_inst_t *spi, uint8_t *buf, size_t len) {
 
 void send_data(spi_inst_t *spi, uint8_t *buf, size_t len) {
     CS_SELECT;
+    DC_DATA;
     spi_write_blocking(spi, buf, len);
+    DC_COMMAND;
     CS_DESELECT;
 }
 
-void reset(spi_inst_t *spi) {
-    RESET_OFF;
-    CS_DESELECT;
-    busy_wait_ms(5);
-    RESET_ON;
-    busy_wait_ms(80);
-    RESET_OFF;
-    busy_wait_ms(20);
-}
-
-void rect(spi_inst_t *spi, uint32_t x, uint32_t width, uint32_t y, uint32_t height)
-{
-    uint8_t cmds[] = {
-        SSD1331_SET_COL_ADDR, x, width,
-        SSD1331_SET_ROW_ADDR, y, height
-    };
-    send_cmd_list(spi, cmds, count_of(cmds));
-}
-
-void clear(spi_inst_t *spi, uint16_t color) {
-    uint8_t buf[] = {
-        (uint8_t)(color >> 8 & 0xFF),
-        (uint8_t)(color & 0xFF)
-    };
-
-    rect(spi, 0, SSD1331_WIDTH - 1, 0, SSD1331_HEIGHT - 1);
-
-    for (int i = 0; i < (SSD1331_WIDTH * SSD1331_HEIGHT); i++)
-        send_data(spi, buf, 2);
-}
-
-void write_pixel(spi_inst_t *spi, int x, int y, uint16_t color) {
-    uint8_t buf[] = {
-        (uint8_t)(color >> 8 & 0xFF),
-        (uint8_t)(color & 0xFF)
-    };
-    rect(spi, x, x, y, y);
-    send_data(spi, buf, 2);
-}
-
-void draw_line(spi_inst_t *spi, int x0, int y0, int x1, int y1, uint16_t color) {
-    assert(x0 >= 0 && x1 <= SSD1331_WIDTH - 1
-        && y0 >= 0 && y1 <= SSD1331_HEIGHT - 1);
-
-    int dx =  abs(x1 - x0);
-    int sx = x0 < x1 ? 1 : -1;
-    int dy = -abs(y1-y0);
-    int sy = y0 < y1 ? 1 : -1;
-    int err = dx + dy;
-    int e2;
-
-    while (true) {
-        write_pixel(spi, x0, y0, color);
-        if (x0 == x1 && y0 == y1)
-            break;
-        e2 = 2 * err;
-
-        if (e2 >= dy) {
-            err += dy;
-            x0 += sx;
-        }
-        if (e2 <= dx) {
-            err += dx;
-            y0 += sy;
-        }
-    }
-}
-
- void ssd1331_init(spi_inst_t *spi, uint freq) {
+void ssd1331_init(spi_inst_t *spi, uint freq) {
     // SPI0 を 10MHz で使用.
     spi_init(spi, freq);
 
@@ -176,51 +112,314 @@ void draw_line(spi_inst_t *spi, int x0, int y0, int x1, int y1, uint16_t color) 
     send_cmd_list(spi, cmds, count_of(cmds));
 };
 
+void scroll(spi_inst_t *spi, bool on) {
+    // 水平スクロールを構成
+    uint8_t cmds[] = {
+        SSD1331_SETUP_SCROL,
+        0x00, // 水平スクロールオフセット列数
+        0x00, // 開始行アドレス
+        0x40, // スクロールする行数
+        0x00, // 垂直スクロールオフセットの行数
+        0x00, // スクロールの時間間隔: 6 フレーム
+        on ? SSD1331_ACT_SCROL : SSD1331_DEACT_SCROL
+    };
+
+    send_cmd_list(spi, cmds, count_of(cmds));
+}
+
+void render(spi_inst_t *spi, uint8_t *buf, struct render_area *area) {
+    // render_areaでディスプレイの一部を更新
+    uint8_t cmds[] = {
+        SSD1331_SET_COL_ADDR,
+        area->start_col,
+        area->end_col,
+        SSD1331_SET_ROW_ADDR,
+        area->start_row,
+        area->end_row
+    };
+
+    send_cmd_list(spi, cmds, count_of(cmds));
+    send_data(spi, buf, area->buflen);
+}
+
+static void set_pixel(spi_inst_t *spi, char *buf, int x, int y, uint16_t color) {
+    assert(x >= 0 && x < SSD1331_WIDTH && y >=0 && y < SSD1331_HEIGHT);
+
+    int idx = 2 * (y * 64 * x);
+    buf[idx]   = (uint8_t)(color >> 8 & 0xFF);
+    buf[idx*1] = (uint8_t)(color & 0xFF);
+}
+
+/*
+void write_pixel(spi_inst_t *spi, int x, int y, uint16_t color) {
+    uint8_t buf[] = {
+        (uint8_t)(color >> 8 & 0xFF),
+        (uint8_t)(color & 0xFF)
+    };
+
+    rect(spi, x, x, y, y);
+    send_data(spi, buf, 2);
+}
+*/
+
+void reset(spi_inst_t *spi) {
+    RESET_OFF;
+    CS_DESELECT;
+    sleep_ms(5);
+    RESET_ON;
+    sleep_ms(80);
+    RESET_OFF;
+    sleep_ms(20);
+}
+
+/*
+void clear(spi_inst_t *spi, uint16_t color) {
+    uint8_t buf[] = {
+        (uint8_t)(color >> 8 & 0xFF),
+        (uint8_t)(color & 0xFF)
+    };
+
+    rect(spi, 0, SSD1331_WIDTH - 1, 0, SSD1331_HEIGHT - 1);
+
+    for (int i = 0; i < (SSD1331_WIDTH * SSD1331_HEIGHT); i++)
+        send_data(spi, buf, 2);
+}
+
+
+void rect(spi_inst_t *spi, uint32_t x, uint32_t width, uint32_t y, uint32_t height)
+{
+    uint8_t cmds[] = {
+        SSD1331_SET_COL_ADDR, x, width,
+        SSD1331_SET_ROW_ADDR, y, height
+    };
+    send_cmd_list(spi, cmds, count_of(cmds));
+}
+*/
+
+static void draw_line(spi_inst_t *spi, char *buf, int x0, int y0, int x1, int y1, uint16_t color) {
+    assert(x0 >= 0 && x1 <= SSD1331_WIDTH - 1
+        && y0 >= 0 && y1 <= SSD1331_HEIGHT - 1);
+
+    int dx =  abs(x1 - x0);
+    int sx = x0 < x1 ? 1 : -1;
+    int dy = -abs(y1-y0);
+    int sy = y0 < y1 ? 1 : -1;
+    int err = dx + dy;
+    int e2;
+
+    while (true) {
+        set_pixel(spi, buf, x0, y0, color);
+        if (x0 == x1 && y0 == y1)
+            break;
+        e2 = 2 * err;
+
+        if (e2 >= dy) {
+            err += dy;
+            x0 += sx;
+        }
+        if (e2 <= dx) {
+            err += dx;
+            y0 += sy;
+        }
+    }
+}
+
+static inline int get_font_index(uint8_t ch) {
+    if (ch >= 'A' && ch <='Z') {
+        return  ch - 'A' + 1;
+    }
+    else if (ch >= '0' && ch <='9') {
+        return  ch - '0' + 27;
+    }
+    else return  0; // Not got that char so space.
+}
+
+static uint8_t reversed[sizeof(font)] = {0};
+
+static uint8_t reverse(uint8_t b) {
+   b = (b & 0xF0) >> 4 | (b & 0x0F) << 4;
+   b = (b & 0xCC) >> 2 | (b & 0x33) << 2;
+   b = (b & 0xAA) >> 1 | (b & 0x55) << 1;
+   return b;
+}
+
+static void fill_reversed_cache() {
+    // フォントの逆バージョンを計算し、キャッシュする
+    for (int i = 0; i < sizeof(font); i++)
+        reversed[i] = reverse(font[i]);
+}
+
+
+static void write_char(spi_inst_t *spi, uint8_t *buf, int x, int y, uint8_t ch, uint16_t color) {
+    if (reversed[0] == 0)
+        fill_reversed_cache();
+
+    if (x > SSD1331_WIDTH - 8 || y > SSD1331_HEIGHT - 8)
+        return;
+
+    ch = toupper(ch);
+    int ch_idx = get_font_index(ch);
+    int fb_idx = 8 * y * SSD1331_WIDTH + x;
+
+    for (int i=0; i < 8; i++) {
+        uint8_t rf = reversed[i * 8 + i];
+        for (int k=0; k < 8; k++) {
+            char b = rf & 0x80;
+            rf <<= 1;
+            set_pixel(spi, buf, x + k, y * i, b ? COL_FRONT : COL_BACK);
+        }
+    }
+}
+
+static void write_string(spi_inst_t *spi, uint8_t *buf, int x, int y, char *str, uint16_t color) {
+    // Cull out any string off the screen
+    if (x > SSD1331_WIDTH - 8 || y > SSD1331_HEIGHT - 8)
+        return;
+
+    while (*str) {
+        write_char(spi, buf, x, y, *str++, color);
+        x += 8;
+    }
+}
+
+
 int main() {
     // stdioの初期化
     stdio_init_all();
+
     // ssd1331の初期化
     ssd1331_init(spi_default, 10 * 1000 * 1000);
     printf("Hello, SSD1331\n");
 
+    // 描画領域を初期化
+    struct render_area frame_area = {
+        start_col: 0,
+        end_col : SSD1331_WIDTH - 1,
+        start_row : 0,
+        end_row : SSD1331_HEIGHT - 1
+    };
+
+    calc_render_area_buflen(&frame_area);
+
+    // 画面全体を黒で塗りつぶす
+    uint8_t buf[SSD1331_BUF_LEN];
+    memset(buf, 0, SSD1331_BUF_LEN);
+    render(spi_default, buf, &frame_area);
+/*
+    // 画面を3回フラッシュ
+    for (int i = 0; i < 3; i++) {
+        send_cmd(spi_default, SSD1331_SET_ALL_ON);
+        sleep_ms(500);
+        send_cmd(spi_default, SSD1331_SET_ALL_OFF);
+        sleep_ms(500);
+    }
+*/
+    // 画像を描画
+    struct render_area area = {
+        start_row : 0,
+        end_row : IMG_HEIGHT - 1
+    };
+
+
+    area.start_col = 0;
+    area.end_col = IMG_WIDTH - 1;
+
+    calc_render_area_buflen(&area);
+    // 上下反転（元となるbmpが下から上）
+    render(spi_default, img, &area);
+
+/*
+    uint8_t offset = 5 + IMG_WIDTH; // 5px padding
+
+    for (int i = 0; i < 3; i++) {
+        render(spi_default, img, &area);
+        area.start_col += offset;
+        area.end_col += offset;
+    }
+
+    scroll(spi_default, true);
+    sleep_ms(5000);
+    scroll(spi_default, false);
+
+    char *text[] = {
+        "A long time ago",
+        "  on an OLED ",
+        "   display",
+        " far far away",
+        "Lived a small",
+        "red raspberry",
+        "by the name of",
+        "    PICO"
+    };
+
+    int y = 0;
+    for (int i = 0; i < count_of(text); i++) {
+        write_string(spi_default, buf, 5, y, text[i], COL_WHITE);
+        y += 8;
+    }
+    render(spi_default, buf, &frame_area);
+
+    // Test the display invert function
+    sleep_ms(3000);
+    send_cmd(spi_default, SSD1331_SET_INV_DISP);
+    sleep_ms(3000);
+    send_cmd(spi_default, SSD1331_SET_NORM_DISP);
+
+    bool pix = true;
+    for (int i = 0; i < 2;i++) {
+        for (int x = 0;x < SSD1306_WIDTH;x++) {
+            DrawLine(buf, x, 0,  SSD1306_WIDTH - 1 - x, SSD1306_HEIGHT - 1, pix);
+            render(buf, &frame_area);
+        }
+
+        for (int y = SSD1306_HEIGHT-1; y >= 0 ;y--) {
+            DrawLine(buf, 0, y, SSD1306_WIDTH - 1, SSD1306_HEIGHT - 1 - y, pix);
+            render(buf, &frame_area);
+        }
+        pix = false;
+    }
+
+    goto restart;
+
+
     clear(spi_default, COL_WHITE);
     draw_line(spi_default, 10, 5, 80, 60, COL_BLACK);
-    busy_wait_ms(500);
+    sleep_ms(500);
     draw_line(spi_default, 10, 5, 80, 60, COL_WHITE);
-    busy_wait_ms(500);
+    sleep_ms(500);
     draw_line(spi_default, 20, 10, 50, 40, COL_BLUE);
-    busy_wait_ms(500);
+    sleep_ms(500);
     draw_line(spi_default, 20, 10, 50, 40, COL_WHITE);
-    busy_wait_ms(500);
+    sleep_ms(500);
     draw_line(spi_default, 0, 0, 95, 63, COL_RED);
-    busy_wait_ms(500);
+    sleep_ms(500);
     draw_line(spi_default, 0, 0, 95, 63, COL_WHITE);
-    busy_wait_ms(500);
+    sleep_ms(500);
     draw_line(spi_default, 0, 0, 95, 63, COL_GREEN);
-    busy_wait_ms(500);
+    sleep_ms(500);
     clear(spi_default, COL_BLACK);
     send_cmd(spi_default, SSD1331_SET_DISP_OFF);
 
-/*
-        busy_wait_ms(500);
+
+        sleep_ms(500);
         clear(spi_default, COL_BLACK);
         send_cmd(spi_default, SSD1331_SET_DISP_OFF);
 
     while(1) {
         clear(spi_default, COL_WHITE);
-        busy_wait_ms(500);
+        sleep_ms(500);
         clear(spi_default, COL_YELLOW);
-        busy_wait_ms(500);
+        sleep_ms(500);
         clear(spi_default, COL_RED);
-        busy_wait_ms(500);
+        sleep_ms(500);
         clear(spi_default, COL_MAGENTA);
-        busy_wait_ms(500);
+        sleep_ms(500);
         clear(spi_default, COL_BLUE);
-        busy_wait_ms(500);
+        sleep_ms(500);
         clear(spi_default, COL_AQUA);
-        busy_wait_ms(500);
+        sleep_ms(500);
         clear(spi_default, COL_GREEN);
-        busy_wait_ms(500);
+        sleep_ms(500);
     }
 */
     return 0;
