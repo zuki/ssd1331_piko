@@ -37,9 +37,6 @@
 
 #define RGB(r,g,b)	(uint16_t)(((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3))
 
-#define COL_FRONT   COL_WHITE
-#define COL_BACK   	COL_BLACK
-
 #define COL_BLACK	RGB(0,0,0)
 #define COL_WHITE	RGB(255,255,255)
 #define COL_RED		RGB(255,0,0)
@@ -57,6 +54,8 @@
 #define	COL_LGRAY	RGB(160,160,160)
 #define	COL_GRAY	RGB(128,128,128)
 
+#define COL_FRONT   COL_WHITE
+#define COL_BACK   	COL_BLACK
 
 // 基本コマンド
 #define SSD1331_SET_COL_ADDR        _u(0x15)    // 桁アドレスの設定: 0x00/0x5F
@@ -119,12 +118,12 @@ struct render_area {
 #define RESET_OFF       gpio_put(SPI_RESN_PIN, 1)
 
 void calc_render_area_buflen(struct render_area *area);
-void send_cmd(spi_inst_t *spi, uint8_t cmd);
-void send_cmd_list(spi_inst_t *spi, uint8_t *buf, size_t len);
-void send_data(spi_inst_t *spi, uint8_t *buf, size_t len);
-void scroll(spi_inst_t *spi, bool on);
-void render(spi_inst_t *spi, uint8_t *buf, struct render_area *area);
-void reset(spi_inst_t *spi);
-//void clear(spi_inst_t *spi, uint16_t color);
+void send_cmd(uint8_t cmd);
+void send_cmd_list(uint8_t *buf, size_t len);
+void send_data(uint8_t *buf, size_t len);
+void scroll(bool on);
+void render(uint8_t *buf, struct render_area *area);
+void reset();
+//void clear(uint16_t color);
 
-void ssd1331_init(spi_inst_t *spi, uint freq);
+void ssd1331_init(uint freq);
