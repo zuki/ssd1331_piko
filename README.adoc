@@ -14,7 +14,7 @@ ssD1331のデータシートは file:///Users/dspace/Documents/Datasheets/SSD133
 
 SPI port 0を使用する。電源は3.3V OUTピンから供給する。
 
-== 1. 画像が表示できた
+== 1. 画像表示OK
 
 * 24bit BMPから16bit RGB565に変換してヘッダーファイルとして作成するプログラムを作成
 * SSD1331_REMAP_COLOR_DEPTH: 0x72 では上下逆さま
@@ -34,7 +34,7 @@ SPI port 0を使用する。電源は3.3V OUTピンから供給する。
 
 image::image_ok.jpeg[画像表示]
 
-== 2. フォントが表示できた
+== 2. フォント表示OK
 
 * フォントは `src-examples/i2c/ssd1306_i2c/ssd1306_font.h`を流量
 * このフォントはSSD1306のバッファの持ち方により左に90度釜向いているので右に90度回転するプログラムを作成
@@ -43,3 +43,9 @@ image::image_ok.jpeg[画像表示]
 link:refs/ssd1306_font.adoc[フォントについて]
 
 image::font_ok.jpeg[フォント表示]
+
+== 3. スクロールOK
+
+== 4. 変転表示OK
+
+== 5. ライン描画OK

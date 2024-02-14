@@ -290,6 +290,8 @@ int main() {
         end_row : IMG_HEIGHT - 1
     };
 
+restart:
+
     area.start_col = 0;
     area.end_col = IMG_WIDTH - 1;
 
@@ -318,70 +320,31 @@ int main() {
     sleep_ms(3000);
     scroll(24, 0, SCROLL_HIGH, false);
 
-/*
-    // Test the display invert function
-    sleep_ms(3000);
+    // 反転表示
     send_cmd(SSD1331_SET_INV_DISP);
-    sleep_ms(3000);
+    sleep_ms(1000);
     send_cmd(SSD1331_SET_NORM_DISP);
 
-    bool pix = true;
-    for (int i = 0; i < 2;i++) {
-        for (int x = 0;x < SSD1306_WIDTH;x++) {
-            DrawLine(buf, x, 0,  SSD1306_WIDTH - 1 - x, SSD1306_HEIGHT - 1, pix);
+    sleep_ms(1000);
+    render(buf, &frame_area);
+
+
+    // ラインを描画
+    uint16_t color = COL_WHITE;
+    for (int i = 0; i < 2; i++) {
+        for (int x = 0; x < SSD1331_WIDTH; x++) {
+            draw_line(buf, x, 0,  SSD1331_WIDTH - 1 - x, SSD1331_HEIGHT - 1, color);
             render(buf, &frame_area);
         }
 
-        for (int y = SSD1306_HEIGHT-1; y >= 0 ;y--) {
-            DrawLine(buf, 0, y, SSD1306_WIDTH - 1, SSD1306_HEIGHT - 1 - y, pix);
+        for (int y = SSD1331_HEIGHT - 1; y >= 0 ;y--) {
+            draw_line(buf, 0, y, SSD1331_WIDTH - 1, SSD1331_HEIGHT - 1 - y, color);
             render(buf, &frame_area);
         }
-        pix = false;
+        color = COL_BLACK;
     }
 
     goto restart;
-
-
-    clear(COL_WHITE);
-    draw_line(10, 5, 80, 60, COL_BLACK);
-    sleep_ms(500);
-    draw_line(10, 5, 80, 60, COL_WHITE);
-    sleep_ms(500);
-    draw_line(20, 10, 50, 40, COL_BLUE);
-    sleep_ms(500);
-    draw_line(20, 10, 50, 40, COL_WHITE);
-    sleep_ms(500);
-    draw_line(0, 0, 95, 63, COL_RED);
-    sleep_ms(500);
-    draw_line(0, 0, 95, 63, COL_WHITE);
-    sleep_ms(500);
-    draw_line(0, 0, 95, 63, COL_GREEN);
-    sleep_ms(500);
-    clear(COL_BLACK);
-    send_cmd(SSD1331_SET_DISP_OFF);
-
-
-        sleep_ms(500);
-        clear(COL_BLACK);
-        send_cmd(SSD1331_SET_DISP_OFF);
-
-    while(1) {
-        clear(COL_WHITE);
-        sleep_ms(500);
-        clear(COL_YELLOW);
-        sleep_ms(500);
-        clear(COL_RED);
-        sleep_ms(500);
-        clear(COL_MAGENTA);
-        sleep_ms(500);
-        clear(COL_BLUE);
-        sleep_ms(500);
-        clear(COL_AQUA);
-        sleep_ms(500);
-        clear(COL_GREEN);
-        sleep_ms(500);
-    }
-*/
 
 #endif
 
