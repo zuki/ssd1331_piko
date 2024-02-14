@@ -110,6 +110,10 @@ struct render_area {
     int buflen;
 };
 
+typedef enum scroll_interval {
+    SCROLL_ULTRA_HIGH, SCROLL_HIGH, SCROLL_MEDIUM, SCROLL_LOW
+} scroll_interval_t;
+
 #define CS_SELECT       gpio_put(SPI_CSN_PIN, 0)
 #define CS_DESELECT     gpio_put(SPI_CSN_PIN, 1)
 #define DC_COMMAND      gpio_put(SPI_DCN_PIN, 0)
@@ -121,7 +125,7 @@ void calc_render_area_buflen(struct render_area *area);
 void send_cmd(uint8_t cmd);
 void send_cmd_list(uint8_t *buf, size_t len);
 void send_data(uint8_t *buf, size_t len);
-void scroll(bool on);
+void scroll(uint8_t h, uint8_t v, scroll_interval_t speed, bool on);
 void render(uint8_t *buf, struct render_area *area);
 void reset();
 //void clear(uint16_t color);

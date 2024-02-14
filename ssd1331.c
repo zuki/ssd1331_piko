@@ -114,15 +114,15 @@ void ssd1331_init(uint freq) {
     send_cmd_list(cmds, count_of(cmds));
 };
 
-void scroll(bool on) {
+void scroll(uint8_t h, uint8_t v, scroll_interval_t speed, bool on) {
     // 水平スクロールを構成
     uint8_t cmds[] = {
         SSD1331_SETUP_SCROL,
-        0x00, // 水平スクロールオフセット列数
+        h, // 水平スクロールオフセット列数
         0x00, // 開始行アドレス
         0x40, // スクロールする行数
-        0x00, // 垂直スクロールオフセットの行数
-        0x00, // スクロールの時間間隔: 6 フレーム
+        v, // 垂直スクロールオフセットの行数
+        (uint8_t)speed, // スクロールの時間間隔
         on ? SSD1331_ACT_SCROL : SSD1331_DEACT_SCROL
     };
 
@@ -272,7 +272,7 @@ int main() {
             buf[2*j+1] = (uint8_t)(colors[i] & 0xff);
         }
         render(buf, &frame_area);
-        sleep_ms(1000);
+        sleep_ms(500);
     }
 /*
     // 画面を3回フラッシュ
@@ -313,11 +313,12 @@ int main() {
     }
     render(buf, &frame_area);
 
-/*
-    scroll(true);
-    sleep_ms(5000);
-    scroll(false);
+    // 横スクロール
+    scroll(24, 0, SCROLL_HIGH, true);
+    sleep_ms(3000);
+    scroll(24, 0, SCROLL_HIGH, false);
 
+/*
     // Test the display invert function
     sleep_ms(3000);
     send_cmd(SSD1331_SET_INV_DISP);
