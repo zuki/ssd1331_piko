@@ -3,5 +3,7 @@ refs/
 tools/bmp2head
 *.bmp
 image.h
+image_flip.h
+image_flip.jpeg
 .DS_Store
 a.out

@@ -263,10 +263,10 @@ int main() {
     static uint16_t colors[] = {
          COL_WHITE, COL_RED, COL_GREEN, COL_BLUE,
          COL_YELLOW, COL_MAGENTA, COL_AQUA, COL_PURPLE,
-         COL_REDPINK, COL_ORANGE, COL_LGRAY, COL_GRAY
+         COL_REDPINK, COL_ORANGE, COL_LGRAY, COL_GRAY, COL_BLACK
     };
 
-    for (int i = 0; i < 12; i++) {
+    for (int i = 0; i < 13; i++) {
         for (int j = 0; j < SSD1331_BUF_LEN / 2; j++) {
             buf[2*j] = (uint8_t)((colors[i] >> 8) & 0xff);
             buf[2*j+1] = (uint8_t)(colors[i] & 0xff);
@@ -292,20 +292,19 @@ int main() {
 
     area.start_col = 0;
     area.end_col = IMG_WIDTH - 1;
-/*
-    calc_render_area_buflen(&area);
-    render(img, &area);
 
-    scroll(true);
-    sleep_ms(5000);
-    scroll(false);
-*/
+    calc_render_area_buflen(&area);
+
+    render(img, &area);
+    sleep_ms(1000);
+    render(buf, &frame_area);
+
+    // フォント出力
     char *text[] = {
         "ABCDEFGHIJKL",
         "MNOPQRSTUVwX",
         "YZ0123456789"
     };
-
 
     int y = 24;
     for (int i = 0; i < count_of(text); i++) {
@@ -313,19 +312,6 @@ int main() {
         y += 8;
     }
     render(buf, &frame_area);
-
-    printf("COL_WHITE: 0x%04x\n", COL_WHITE);
-    printf("COL_RED: 0x%04x\n", COL_RED);
-    printf("COL_GREEN: 0x%04x\n", COL_GREEN);
-    printf("COL_BLUE: 0x%04x\n", COL_BLUE);
-    printf("COL_YELLOW: 0x%04x\n", COL_YELLOW);
-    printf("COL_MAGENTA: 0x%04x\n", COL_MAGENTA);
-    printf("COL_AQUA: 0x%04x\n", COL_AQUA);
-    printf("COL_PURPLE: 0x%04x\n", COL_PURPLE);
-    printf("COL_REDPINK: 0x%04x\n", COL_REDPINK);
-    printf("COL_ORANGE: 0x%04x\n", COL_ORANGE);
-    printf("COL_LGRAY: 0x%04x\n", COL_LGRAY);
-    printf("COL_GRAY: 0x%04x\n", COL_GRAY);
 
 /*
     scroll(true);

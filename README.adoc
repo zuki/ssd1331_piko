@@ -17,6 +17,20 @@ SPI port 0を使用する。電源は3.3V OUTピンから供給する。
 == 1. 画像が表示できた
 
 * 24bit BMPから16bit RGB565に変換してヘッダーファイルとして作成するプログラムを作成
+* SSD1331_REMAP_COLOR_DEPTH: 0x72 では上下逆さま
+* SSD1331_REMAP_COLOR_DEPTH: 0x40 では横半分に圧縮
+* SSD1331_REMAP_COLOR_DEPTH: 0x60 で正常
+   ** [7:6]=01: 65K color format
+   ** [5]=1: Enable COM Spilit Odd Even
+   ** [4]=0: Scan from COM0 tom COM[N-1]
+   ** [3]=0: Disable left-right swapping on COM
+   ** [2]=0: RGB
+   ** [1]=0: RAM Column 0 to 95 to Pin Seg(SA,SB,SC) 0 to 95
+   ** [0]=0: Horizontal address increment
+* 文字出力が反転するようになった
+   ** 元画像のbmp形式は画像データが上下反転で格納される仕様であった
+   ** `convert -flip` で元画像を上限反転
+   ** SSD1331_REMAP_COLOR_DEPTHを0x72に戻すと画像も文字出力も正常になった
 
 image::image_ok.jpeg[画像表示]
 
