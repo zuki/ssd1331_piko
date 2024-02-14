@@ -258,6 +258,22 @@ int main() {
     uint8_t buf[SSD1331_BUF_LEN];
     memset(buf, 0, SSD1331_BUF_LEN);
     render(buf, &frame_area);
+
+    // 色定義の確認
+    static uint16_t colors[] = {
+         COL_WHITE, COL_RED, COL_GREEN, COL_BLUE,
+         COL_YELLOW, COL_MAGENTA, COL_AQUA, COL_PURPLE,
+         COL_REDPINK, COL_ORANGE, COL_LGRAY, COL_GRAY
+    };
+
+    for (int i = 0; i < 12; i++) {
+        for (int j = 0; j < SSD1331_BUF_LEN / 2; j++) {
+            buf[2*j] = (uint8_t)((colors[i] >> 8) & 0xff);
+            buf[2*j+1] = (uint8_t)(colors[i] & 0xff);
+        }
+        render(buf, &frame_area);
+        sleep_ms(1000);
+    }
 /*
     // 画面を3回フラッシュ
     for (int i = 0; i < 3; i++) {
