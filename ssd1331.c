@@ -285,20 +285,15 @@ int main() {
     scroll(false);
 */
     char *text[] = {
-        "A long time ",
-        "ago on an OL",
-        "ED display f",
-        "ar far away ",
-        "Lived a smal",
-        "l red raspbe",
-        "rry by the ",
-        "name of PICO"
+        "ABCDEFGHIJKL",
+        "MNOPQRSTUVwX",
+        "YZ0123456789"
     };
 
 
-    int y = 0;
+    int y = 24;
     for (int i = 0; i < count_of(text); i++) {
-        write_string(buf, 0, y, text[i], COL_ORANGE);
+        write_string(buf, 0, y, text[i], COL_WHITE);
         y += 8;
     }
     render(buf, &frame_area);
