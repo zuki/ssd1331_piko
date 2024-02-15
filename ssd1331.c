@@ -197,6 +197,12 @@ static inline int get_font_index(uint8_t ch) {
     else if (ch >= '0' && ch <='9') {
         return  ch - '0' + 27;
     }
+    else if (ch == '.') {
+        return 37;
+    }
+    else if (ch == ':') {
+        return 38;
+    }
     else return  0; // Not got that char so space.
 }
 
@@ -259,6 +265,7 @@ int main() {
     memset(buf, 0, SSD1331_BUF_LEN);
     render(buf, &frame_area);
 
+/*
     // 色定義の確認
     static uint16_t colors[] = {
          COL_WHITE, COL_RED, COL_GREEN, COL_BLUE,
@@ -274,7 +281,7 @@ int main() {
         render(buf, &frame_area);
         sleep_ms(500);
     }
-/*
+
     // 画面を3回フラッシュ
     for (int i = 0; i < 3; i++) {
         send_cmd(SSD1331_SET_ALL_ON);
@@ -282,7 +289,6 @@ int main() {
         send_cmd(SSD1331_SET_ALL_OFF);
         sleep_ms(500);
     }
-*/
 
     // 画像を描画
     struct render_area area = {
@@ -345,6 +351,21 @@ restart:
     }
 
     goto restart;
+*/
+
+   //
+    char *text[3][12];  // 8行12桁
+    sprintf(text[0], "P: %7.2f", 1007.41);
+    sprintf(text[1], "T: %5.2f", 25.91);
+    sprintf(text[2], "H: %5.2f", 30.04);
+
+    int y = 8;
+    for (int i = 0; i < count_of(text); i++) {
+        write_string(buf, 0, y, text[i], COL_WHITE);
+        y += 10;
+    }
+    render(buf, &frame_area);
+
 
 #endif
 
