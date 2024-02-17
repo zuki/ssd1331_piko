@@ -38,7 +38,7 @@ image::image_ok.jpeg[画像表示]
 
 === 2. フォント表示OK
 
-* フォントは `src-examples/i2c/ssd1306_i2c/ssd1306_font.h`を流量
+* フォントは `src-examples/i2c/ssd1306_i2c/ssd1306_font.h`を流用
 * このフォントはSSD1306のバッファの持ち方により左に90度釜向いているので右に90度回転するプログラムを作成
 * できたフォントを少しだけ修正
 

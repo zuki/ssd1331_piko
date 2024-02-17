@@ -1,5 +1,7 @@
 build/
-refs/
+refs/*
+!refs/ssd1306_font.adoc
+!refs/ssd1306_fig_8_14.png
 tools/bmp2head
 *.bmp
 image.h
