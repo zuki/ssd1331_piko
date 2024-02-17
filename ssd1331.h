@@ -33,7 +33,7 @@
 
 #define SSD1331_HEIGHT      64
 #define SSD1331_WIDTH       96
-#define SSD1331_BUF_LEN     (2 * SSD1331_HEIGHT * SSD1331_WIDTH)
+#define SSD1331_BUF_LEN     (SSD1331_HEIGHT * SSD1331_WIDTH)
 
 #define RGB(r,g,b)	(uint16_t)(((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3))
 
@@ -124,9 +124,9 @@ typedef enum scroll_interval {
 void calc_render_area_buflen(struct render_area *area);
 void send_cmd(uint8_t cmd);
 void send_cmd_list(uint8_t *buf, size_t len);
-void send_data(uint8_t *buf, size_t len);
+void send_data(uint16_t *buf, size_t len);
 void scroll(uint8_t h, uint8_t v, scroll_interval_t speed, bool on);
-void render(uint8_t *buf, struct render_area *area);
+void render(uint16_t *buf, struct render_area *area);
 void reset();
 //void clear(uint16_t color);
 

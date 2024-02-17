@@ -28,14 +28,16 @@ int main(int argc, char *argv[]) {
     fseek(fd, offset, SEEK_SET);
     printf("#define IMG_WIDTH %d\n", width);
     printf("#define IMG_HEIGHT %d\n\n", height);
-    printf("const uint8_t img[] = {\n\t");
+    printf("const uint16_t img[] = {\n\t");
 
     for (int i=0; i < img_size/3; i++) {
         fread(data, 3, 1, fd);
         // 画像データは BGR の順で格納されている
         rgb = (uint16_t)(((data[2] >> 3) << 11) | ((data[1] >> 2) << 5) | (data[0] >> 3));
-        // RGB565はリトルエンディアンで出力
-        printf("%s 0x%02X, 0x%02X", i == 0 ? " " : ",", (rgb >> 8) & 0xff, rgb & 0xff);
+        // RGB565をuint16_tで出力
+        printf("%s 0x%04X", i == 0 ? " " : ",", rgb);
+        // RGB565をリトルエンディアンでuchar8_t 2個で出力
+        //printf("%s 0x%02X, 0x%02X", i == 0 ? " " : ",", (rgb >> 8) & 0xff, rgb & 0xff);
         if (((i + 1) % 8) == 0) printf("\n\t");
     }
 

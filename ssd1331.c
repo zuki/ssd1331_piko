@@ -31,12 +31,13 @@
 
 void calc_render_area_buflen(struct render_area *area) {
     // レンダーエリアのバッファの長さを計算する: データは16bit
-    area->buflen = 2 * (area->end_col - area->start_col + 1) * (area->end_row - area->start_row + 1);
+    area->buflen = (area->end_col - area->start_col + 1) * (area->end_row - area->start_row + 1);
 }
 
 #ifdef spi_default
 
 void send_cmd(uint8_t cmd) {
+    spi_set_format(spi_default, 8, SPI_CPOL_0,  SPI_CPHA_0, SPI_MSB_FIRST);
     CS_SELECT;
     DC_COMMAND;
     spi_write_blocking(spi_default, &cmd, 1);
@@ -49,10 +50,11 @@ void send_cmd_list(uint8_t *buf, size_t len) {
         send_cmd(buf[i]);
 }
 
-void send_data(uint8_t *buf, size_t len) {
+void send_data(uint16_t *buf, size_t len) {
+    spi_set_format(spi_default, 16, SPI_CPOL_0,  SPI_CPHA_0, SPI_MSB_FIRST);
     CS_SELECT;
     DC_DATA;
-    spi_write_blocking(spi_default, buf, len);
+    spi_write16_blocking(spi_default, buf, len);
     DC_COMMAND;
     CS_DESELECT;
 }
@@ -129,7 +131,7 @@ void scroll(uint8_t h, uint8_t v, scroll_interval_t speed, bool on) {
     send_cmd_list(cmds, count_of(cmds));
 }
 
-void render(uint8_t *buf, struct render_area *area) {
+void render(uint16_t *buf, struct render_area *area) {
     // render_areaでディスプレイの一部を更新
     uint8_t cmds[] = {
         SSD1331_SET_COL_ADDR,
@@ -144,12 +146,11 @@ void render(uint8_t *buf, struct render_area *area) {
     send_data(buf, area->buflen);
 }
 
-static void set_pixel(char *buf, int x, int y, uint16_t color) {
+static void set_pixel(uint16_t *buf, int x, int y, uint16_t color) {
     assert(x >= 0 && x < SSD1331_WIDTH && y >=0 && y < SSD1331_HEIGHT);
 
-    int idx = 2 * (y * 96 + x);
-    buf[idx]   = (uint8_t)(color & 0xFF);
-    buf[idx*1] = (uint8_t)(color >> 8 & 0xFF);
+    int idx = y * 96 + x;
+    buf[idx]   = color;
 }
 
 void reset(void) {
@@ -162,7 +163,7 @@ void reset(void) {
     sleep_ms(20);
 }
 
-static void draw_line(char *buf, int x0, int y0, int x1, int y1, uint16_t color) {
+static void draw_line(int16_t *buf, int x0, int y0, int x1, int y1, uint16_t color) {
     assert(x0 >= 0 && x1 <= SSD1331_WIDTH - 1
         && y0 >= 0 && y1 <= SSD1331_HEIGHT - 1);
 
@@ -206,7 +207,7 @@ static inline int get_font_index(uint8_t ch) {
     else return  0; // Not got that char so space.
 }
 
-static void write_char(uint8_t *buf, int x, int y, uint8_t ch, uint16_t color) {
+static void write_char(uint16_t *buf, int x, int y, uint8_t ch, uint16_t color) {
     if (x > SSD1331_WIDTH - 8 || y > SSD1331_HEIGHT - 8)
         return;
 
@@ -220,12 +221,12 @@ static void write_char(uint8_t *buf, int x, int y, uint8_t ch, uint16_t color) {
         for (int k = 0; k < 8; k++) {
             b = (c & p);
             p >>= 1;
-            set_pixel(buf, x + k, y + i, b ? color : 0);
+            set_pixel(buf, x + k, y + i, b ? color : COL_BLACK);
         }
     }
 }
 
-static void write_string(uint8_t *buf, int x, int y, char *str, uint16_t color) {
+static void write_string(uint16_t *buf, int x, int y, char *str, uint16_t color) {
     // Cull out any string off the screen
     if (x > SSD1331_WIDTH - 8 || y > SSD1331_HEIGHT - 8)
         return;
@@ -261,8 +262,8 @@ int main() {
     calc_render_area_buflen(&frame_area);
 
     // 画面全体を黒で塗りつぶす
-    uint8_t buf[SSD1331_BUF_LEN];
-    memset(buf, 0, SSD1331_BUF_LEN);
+    uint16_t buf[SSD1331_BUF_LEN];
+    memset(buf, 0, 2*SSD1331_BUF_LEN);
     render(buf, &frame_area);
 
 /*
@@ -274,9 +275,10 @@ int main() {
     };
 
     for (int i = 0; i < 13; i++) {
-        for (int j = 0; j < SSD1331_BUF_LEN / 2; j++) {
-            buf[2*j] = (uint8_t)((colors[i] >> 8) & 0xff);
-            buf[2*j+1] = (uint8_t)(colors[i] & 0xff);
+        for (int j = 0; j < SSD1331_BUF_LEN; j++) {
+            buf[j] = color;
+            //buf[2*j] = (uint8_t)((colors[i] >> 8) & 0xff);
+            //buf[2*j+1] = (uint8_t)(colors[i] & 0xff);
         }
         render(buf, &frame_area);
         sleep_ms(500);
@@ -289,6 +291,7 @@ int main() {
         send_cmd(SSD1331_SET_ALL_OFF);
         sleep_ms(500);
     }
+*/
 
     // 画像を描画
     struct render_area area = {
@@ -351,7 +354,7 @@ restart:
     }
 
     goto restart;
-*/
+/*
 
    //
     char *text[3][12];  // 8行12桁
@@ -365,7 +368,7 @@ restart:
         y += 10;
     }
     render(buf, &frame_area);
-
+*/
 
 #endif
 
