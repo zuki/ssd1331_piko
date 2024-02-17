@@ -14,7 +14,9 @@ ssD1331のデータシートは file:///Users/dspace/Documents/Datasheets/SSD133
 
 SPI port 0を使用する。電源は3.3V OUTピンから供給する。
 
-== 1. 画像表示OK
+== 実行結果
+
+=== 1. 画像表示OK
 
 * 24bit BMPから16bit RGB565に変換してヘッダーファイルとして作成するプログラムを作成
 * SSD1331_REMAP_COLOR_DEPTH: 0x72 では上下逆さま
@@ -34,7 +36,7 @@ SPI port 0を使用する。電源は3.3V OUTピンから供給する。
 
 image::image_ok.jpeg[画像表示]
 
-== 2. フォント表示OK
+=== 2. フォント表示OK
 
 * フォントは `src-examples/i2c/ssd1306_i2c/ssd1306_font.h`を流量
 * このフォントはSSD1306のバッファの持ち方により左に90度釜向いているので右に90度回転するプログラムを作成
@@ -44,8 +46,21 @@ link:refs/ssd1306_font.adoc[フォントについて]
 
 image::font_ok.jpeg[フォント表示]
 
-== 3. スクロールOK
+=== 3. スクロールOK
 
-== 4. 変転表示OK
+=== 4. 変転表示OK
 
-== 5. ライン描画OK
+=== 5. ライン描画OK
+
+== データ送信に `spi_write16_blocking` を使用
+
+unit16_t[]を書き出すための関数があることを発見してデータバッファをuint16_t[]として書き直した。
+修正点は次の5点。
+
+* 画像データをuint16_tの配列で書き出すようimage_to_hex.cを変更
+* バッファサイズをuint16_tの個数に変更
+* colorのuint8_t[2]への分解をやめる
+* send_data()でspi_write_blocking()の代わりにspi_write16_blocking()を使用
+* send_cmd(), send_data()の冒頭でspi_set_format()で送信データのビット数を変更
+
+なお、この変更で文字色の白が黄色になる問題が解決した。
